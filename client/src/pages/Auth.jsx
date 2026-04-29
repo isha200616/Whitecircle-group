@@ -10,7 +10,7 @@ export default function Auth({ mode }) {
   const [error, setError] = useState("");
   const [form, setForm] = useState({
     name: "",
-    email: isRegister ? "client@whitecircle.in" : "client@whitecircle.in",
+    email: isRegister ? "" : "client@whitecircle.in",
     password: "Password123",
     phone: "",
     companyName: "",

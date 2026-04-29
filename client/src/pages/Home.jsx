@@ -15,7 +15,18 @@ import { dashboardStats, faq, features, pricing, quickHighlights, services, test
 
 export default function Home() {
   const [active, setActive] = useState(0);
+  const [selectedPlan, setSelectedPlan] = useState(null);
+  const [purchaseStatus, setPurchaseStatus] = useState("");
   const testimonial = testimonials[active];
+
+  function choosePlan(plan) {
+    setSelectedPlan(plan);
+    setPurchaseStatus("");
+  }
+
+  function confirmPurchase() {
+    setPurchaseStatus(`${selectedPlan.name} plan payment noted. Please register or login to activate your workspace.`);
+  }
 
   return (
     <main className="bg-white">
@@ -27,7 +38,7 @@ export default function Home() {
               <PlayCircle size={17} /> Live compliance operations for Indian businesses
             </div>
             <h1 className="max-w-4xl text-4xl font-semibold leading-tight sm:text-5xl lg:text-6xl">
-              India’s Most Trusted Tax & Compliance Platform
+              India's Most Trusted Tax & Compliance Platform
             </h1>
             <p className="mt-5 max-w-2xl text-lg leading-8 text-slate-300">
               WhiteCircle Group brings GST, ITR, TDS, registrations, document vaults, CA support, reminders, invoices, and filing proofs into one secure workspace.
@@ -153,6 +164,9 @@ export default function Home() {
                     <p key={item} className="flex items-center gap-2 text-sm text-slate-600"><Check className="text-mint" size={17} /> {item}</p>
                   ))}
                 </div>
+                <button onClick={() => choosePlan(plan)} className={`mt-6 block w-full rounded px-4 py-3 text-center text-sm font-semibold ${plan.featured ? "bg-mint text-white" : "bg-navy text-white"}`}>
+                  Choose plan
+                </button>
               </div>
             ))}
           </div>
@@ -162,7 +176,7 @@ export default function Home() {
       <section className="py-16">
         <div className="mx-auto max-w-4xl px-4 text-center sm:px-6 lg:px-8">
           <p className="text-sm font-semibold uppercase tracking-wide text-mint">Testimonials</p>
-          <blockquote className="mt-4 text-2xl font-medium leading-10 text-navy">“{testimonial.quote}”</blockquote>
+          <blockquote className="mt-4 text-2xl font-medium leading-10 text-navy">"{testimonial.quote}"</blockquote>
           <p className="mt-5 font-semibold">{testimonial.name}</p>
           <p className="text-sm text-slate-500">{testimonial.role}</p>
           <div className="mt-6 flex justify-center gap-3">
@@ -186,6 +200,53 @@ export default function Home() {
         </div>
       </section>
       <Footer />
+
+      {selectedPlan && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-navy/70 px-4 py-6">
+          <div className="max-h-[92vh] w-full max-w-md overflow-y-auto rounded-lg bg-white p-6 shadow-soft">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-sm font-semibold uppercase text-mint">Plan checkout</p>
+                <h2 className="mt-1 text-2xl font-semibold text-navy">{selectedPlan.name}</h2>
+                <p className="mt-1 text-sm text-slate-500">{selectedPlan.tag}</p>
+              </div>
+              <button onClick={() => setSelectedPlan(null)} className="rounded border border-slate-200 px-3 py-1.5 text-sm font-semibold text-slate-600">
+                Close
+              </button>
+            </div>
+
+            <div className="mt-5 rounded bg-slate-50 p-4 text-sm text-slate-700">
+              <p className="font-semibold text-navy">Selected plan</p>
+              <p className="mt-1">Amount: {selectedPlan.price}</p>
+              <p className="mt-1">Scan the QR code below to complete payment.</p>
+            </div>
+
+            <div className="mx-auto mt-5 w-full max-w-xs overflow-hidden rounded-lg border border-slate-200 bg-slate-50 p-2">
+              <img src="/upi-payment-qr.jpeg" alt="UPI payment QR for plan purchase" className="h-auto w-full rounded bg-white object-contain" />
+            </div>
+
+            <div className="mt-5 rounded bg-slate-50 p-4 text-sm text-slate-700">
+              <p className="font-semibold text-navy">UPI details</p>
+              <p className="mt-1">UPI ID: idutta795@okicici</p>
+              <p className="mt-1">Reference: WhiteCircle {selectedPlan.name}</p>
+            </div>
+
+            {purchaseStatus && <p className="mt-4 rounded bg-green-50 px-4 py-3 text-sm text-green-700">{purchaseStatus}</p>}
+
+            <div className="mt-5 flex flex-wrap gap-3">
+              <button onClick={confirmPurchase} className="rounded bg-mint px-4 py-3 text-sm font-semibold text-white">
+                I have paid
+              </button>
+              <Link to="/register" className="rounded bg-navy px-4 py-3 text-sm font-semibold text-white">
+                Register account
+              </Link>
+              <button onClick={() => setSelectedPlan(null)} className="rounded border border-slate-300 px-4 py-3 text-sm font-semibold text-navy">
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }

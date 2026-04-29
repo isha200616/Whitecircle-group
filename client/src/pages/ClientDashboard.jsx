@@ -4,6 +4,8 @@ import DashboardShell from "../components/DashboardShell.jsx";
 import { Card, StatCard, StatusPill } from "../components/UI.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 
+const API_BASE = (import.meta.env.VITE_API_URL || "http://localhost:5000/api").replace(/\/api$/, "");
+
 const fallback = {
   summary: { pending: 1, inProcess: 1, filed: 1, unpaidInvoices: 1 },
   filings: [
@@ -23,6 +25,8 @@ export default function ClientDashboard() {
   const [uploadStatus, setUploadStatus] = useState("");
   const [chatMessage, setChatMessage] = useState("");
   const [chatStatus, setChatStatus] = useState("");
+  const [paymentStatus, setPaymentStatus] = useState("");
+  const [paymentInvoice, setPaymentInvoice] = useState(null);
 
   useEffect(() => {
     api("/client/dashboard").then(setData).catch(() => setData(fallback));
@@ -34,9 +38,31 @@ export default function ClientDashboard() {
     setUploadStatus("Uploading...");
     try {
       await api("/client/documents", { method: "POST", body: form });
+      const fresh = await api("/client/dashboard");
+      setData(fresh);
       setUploadStatus("Documents uploaded to secure vault.");
+      event.currentTarget.reset();
     } catch (error) {
       setUploadStatus(error.message);
+    }
+  }
+
+  async function payInvoice(invoiceId) {
+    setPaymentStatus("Confirming mock payment...");
+    try {
+      const paidInvoice = await api(`/client/invoices/${invoiceId}/pay`, { method: "PATCH" });
+      setData((current) => ({
+        ...current,
+        summary: {
+          ...current.summary,
+          unpaidInvoices: Math.max(0, current.summary.unpaidInvoices - 1)
+        },
+        invoices: current.invoices.map((invoice) => (invoice._id === paidInvoice._id ? paidInvoice : invoice))
+      }));
+      setPaymentInvoice(null);
+      setPaymentStatus("Payment marked as paid.");
+    } catch (error) {
+      setPaymentStatus(error.message);
     }
   }
 
@@ -106,7 +132,11 @@ export default function ClientDashboard() {
                     <td>{filing.period}</td>
                     <td>{new Date(filing.dueDate).toLocaleDateString()}</td>
                     <td><StatusPill value={filing.status} /></td>
-                    <td>{filing.acknowledgementUrl ? <a className="text-mint" href={filing.acknowledgementUrl}>Download</a> : "Pending"}</td>
+                    <td>
+                      {filing.acknowledgementUrl ? (
+                        <a className="text-mint" href={`${API_BASE}${filing.acknowledgementUrl}`} target="_blank" rel="noreferrer">Download</a>
+                      ) : "Pending"}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -120,10 +150,19 @@ export default function ClientDashboard() {
             {data.invoices.map((invoice) => (
               <div key={invoice._id} className="flex items-center justify-between rounded bg-slate-50 p-4">
                 <div><p className="font-semibold">{invoice.invoiceNumber}</p><p className="text-sm text-slate-500">{invoice.service}</p></div>
-                <div className="text-right"><p className="font-semibold">₹{invoice.amount + invoice.tax}</p><StatusPill value={invoice.status} /></div>
+                <div className="text-right">
+                  <p className="font-semibold">Rs. {invoice.amount + invoice.tax}</p>
+                  <StatusPill value={invoice.status} />
+                  {invoice.status !== "Paid" && (
+                    <button onClick={() => setPaymentInvoice(invoice)} className="mt-2 rounded bg-mint px-3 py-1.5 text-xs font-semibold text-white">
+                      Pay now
+                    </button>
+                  )}
+                </div>
               </div>
             ))}
           </div>
+          {paymentStatus && <p className="mt-3 text-sm text-slate-600">{paymentStatus}</p>}
         </Card>
       </div>
 
@@ -132,7 +171,7 @@ export default function ClientDashboard() {
           <h2 className="mb-4 text-xl font-semibold text-navy">Secure cloud storage</h2>
           {data.documents.map((doc) => (
             <div key={doc._id} className="mb-3 rounded border border-slate-200 p-4">
-              <p className="font-semibold">{doc.category} · {doc.month}</p>
+              <p className="font-semibold">{doc.category} - {doc.month}</p>
               <p className="text-sm text-slate-600">{doc.notes}</p>
               <p className="mt-2 text-xs text-slate-500">{doc.files?.length || 0} file(s)</p>
             </div>
@@ -164,6 +203,46 @@ export default function ClientDashboard() {
           </form>
         </Card>
       </div>
+
+      {paymentInvoice && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-navy/70 px-4 py-6">
+          <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-soft">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-sm font-semibold uppercase text-mint">Mock QR payment</p>
+                <h2 className="mt-1 text-2xl font-semibold text-navy">{paymentInvoice.invoiceNumber}</h2>
+                <p className="mt-1 text-sm text-slate-500">{paymentInvoice.service}</p>
+              </div>
+              <button onClick={() => setPaymentInvoice(null)} className="rounded border border-slate-200 px-3 py-1.5 text-sm font-semibold text-slate-600">
+                Close
+              </button>
+            </div>
+
+            <div className="mx-auto mt-6 w-full max-w-xs overflow-hidden rounded-lg border border-slate-200 bg-slate-50 p-2">
+              <img
+                src="/upi-payment-qr.jpeg"
+                alt="UPI payment QR for Ishani Dutta"
+                className="h-auto w-full rounded bg-white object-contain"
+              />
+            </div>
+
+            <div className="mt-5 rounded bg-slate-50 p-4 text-sm text-slate-700">
+              <p className="font-semibold text-navy">Scan and pay</p>
+              <p className="mt-1">Amount: Rs. {paymentInvoice.amount + paymentInvoice.tax}</p>
+              <p className="mt-1">UPI ID: idutta795@okicici</p>
+            </div>
+
+            <div className="mt-5 flex flex-wrap gap-3">
+              <button onClick={() => payInvoice(paymentInvoice._id)} className="rounded bg-mint px-4 py-3 text-sm font-semibold text-white">
+                I have paid
+              </button>
+              <button onClick={() => setPaymentInvoice(null)} className="rounded border border-slate-300 px-4 py-3 text-sm font-semibold text-navy">
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </DashboardShell>
   );
 }
