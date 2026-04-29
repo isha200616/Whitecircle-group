@@ -39,3 +39,14 @@ export async function uploadAcknowledgement(req, res) {
   if (!filing) return res.status(404).json({ message: "Assigned filing not found" });
   res.json(filing);
 }
+
+export async function sendAccountantMessage(req, res) {
+  const chat = await Chat.findOne({ _id: req.params.id, accountant: req.user._id });
+  if (!chat) return res.status(404).json({ message: "Chat not found" });
+
+  chat.messages.push({ sender: req.user._id, body: req.body.body });
+  await chat.save();
+  await chat.populate("client", "name companyName");
+  await chat.populate("messages.sender", "name role");
+  res.status(201).json(chat);
+}

@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { getClientDashboard, sendClientMessage, uploadDocuments } from "../controllers/client.controller.js";
+import { getClientDashboard, payInvoice, sendClientMessage, uploadDocuments } from "../controllers/client.controller.js";
 import { authorize, protect } from "../middleware/auth.js";
 import { upload } from "../middleware/upload.js";
 
@@ -9,5 +9,6 @@ router.use(protect, authorize("client"));
 router.get("/dashboard", getClientDashboard);
 router.post("/documents", upload.array("files", 8), uploadDocuments);
 router.post("/chat", sendClientMessage);
+router.patch("/invoices/:id/pay", payInvoice);
 
 export default router;

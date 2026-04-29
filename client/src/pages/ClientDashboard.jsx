@@ -21,6 +21,8 @@ export default function ClientDashboard() {
   const { api } = useAuth();
   const [data, setData] = useState(fallback);
   const [uploadStatus, setUploadStatus] = useState("");
+  const [chatMessage, setChatMessage] = useState("");
+  const [chatStatus, setChatStatus] = useState("");
 
   useEffect(() => {
     api("/client/dashboard").then(setData).catch(() => setData(fallback));
@@ -35,6 +37,22 @@ export default function ClientDashboard() {
       setUploadStatus("Documents uploaded to secure vault.");
     } catch (error) {
       setUploadStatus(error.message);
+    }
+  }
+
+  async function sendMessage(event) {
+    event.preventDefault();
+    const body = chatMessage.trim();
+    if (!body) return;
+
+    setChatStatus("Sending...");
+    try {
+      const chat = await api("/client/chat", { method: "POST", body: JSON.stringify({ body }) });
+      setData((current) => ({ ...current, chat }));
+      setChatMessage("");
+      setChatStatus("Message sent.");
+    } catch (error) {
+      setChatStatus(error.message);
     }
   }
 
@@ -122,7 +140,7 @@ export default function ClientDashboard() {
         </Card>
         <Card>
           <h2 className="mb-4 flex items-center gap-2 text-xl font-semibold text-navy"><MessageCircle className="text-mint" /> CA support chat</h2>
-          <div className="space-y-3">
+          <div className="max-h-72 space-y-3 overflow-y-auto pr-1">
             {data.chat?.messages?.map((message, index) => (
               <div key={index} className="rounded bg-slate-50 p-3">
                 <p className="text-xs font-semibold uppercase text-slate-500">{message.sender?.name || "Team"}</p>
@@ -130,6 +148,20 @@ export default function ClientDashboard() {
               </div>
             ))}
           </div>
+          <form onSubmit={sendMessage} className="mt-4 grid gap-3">
+            <textarea
+              className="min-h-24 rounded border border-slate-300 px-3 py-3 text-sm outline-none focus:border-mint"
+              placeholder="Type your message for the accountant"
+              value={chatMessage}
+              onChange={(event) => setChatMessage(event.target.value)}
+            />
+            <div className="flex flex-wrap items-center gap-3">
+              <button className="rounded bg-navy px-4 py-2 text-sm font-semibold text-white" type="submit">
+                Send message
+              </button>
+              {chatStatus && <p className="text-sm text-slate-600">{chatStatus}</p>}
+            </div>
+          </form>
         </Card>
       </div>
     </DashboardShell>

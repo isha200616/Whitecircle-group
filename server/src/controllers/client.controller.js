@@ -53,5 +53,17 @@ export async function sendClientMessage(req, res) {
 
   chat.messages.push({ sender: req.user._id, body: req.body.body });
   await chat.save();
+  await chat.populate("messages.sender", "name role");
   res.status(201).json(chat);
+}
+
+export async function payInvoice(req, res) {
+  const invoice = await Invoice.findOneAndUpdate(
+    { _id: req.params.id, client: req.user._id },
+    { status: "Paid", paidAt: new Date(), razorpayOrderId: `order_mock_${Date.now()}` },
+    { new: true }
+  );
+
+  if (!invoice) return res.status(404).json({ message: "Invoice not found" });
+  res.json(invoice);
 }

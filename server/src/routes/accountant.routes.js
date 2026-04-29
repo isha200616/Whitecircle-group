@@ -1,6 +1,7 @@
 import { Router } from "express";
 import {
   getAccountantPanel,
+  sendAccountantMessage,
   updateAssignedFiling,
   uploadAcknowledgement
 } from "../controllers/accountant.controller.js";
@@ -13,5 +14,6 @@ router.use(protect, authorize("accountant"));
 router.get("/dashboard", getAccountantPanel);
 router.patch("/filings/:id", updateAssignedFiling);
 router.post("/filings/:id/acknowledgement", upload.single("acknowledgement"), uploadAcknowledgement);
+router.post("/chats/:id", sendAccountantMessage);
 
 export default router;

@@ -19,14 +19,18 @@ export function createApp() {
   const allowedOrigins = new Set([
     process.env.CLIENT_URL || "http://localhost:5173",
     "http://localhost:5173",
-    "http://127.0.0.1:5173"
+    "http://localhost:5174",
+    "http://127.0.0.1:5173",
+    "http://127.0.0.1:5174"
   ]);
 
   app.use(helmet({ crossOriginResourcePolicy: { policy: "cross-origin" } }));
   app.use(
     cors({
       origin(origin, callback) {
-        if (!origin || allowedOrigins.has(origin)) return callback(null, true);
+        if (!origin || allowedOrigins.has(origin) || /^http:\/\/(localhost|127\.0\.0\.1):\d+$/.test(origin)) {
+          return callback(null, true);
+        }
         return callback(new Error(`CORS blocked for origin: ${origin}`));
       },
       credentials: true
